@@ -1,0 +1,418 @@
+LOGIN en PAGES FEO PERO FUNCIONAL:
+
+import { useState } from "react"
+import { useNavigate } from "react-router-dom"
+import axios from "axios"
+
+export default function Login() {
+  const [cedula, setCedula] = useState("")
+  const [password, setPassword] = useState("")
+  const [error, setError] = useState("")
+  const navigate = useNavigate()
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setError("")
+    try {
+      const res = await axios.post("http://localhost:8000/auth/login", {
+        cedula,
+        password
+      })
+
+      localStorage.setItem("token", res.data.token)
+      localStorage.setItem("user_id", res.data.user_id)
+      localStorage.setItem("rol", res.data.rol)
+      localStorage.setItem("nombre", res.data.nombre)
+
+      if (res.data.debe_cambiar_password) {
+        navigate("/change-password")
+      } else {
+        navigate("/dashboard")
+      }
+
+    } catch (error) {
+      setError("Cédula o contraseña incorrectos")
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <h2>Iniciar sesión</h2>
+      <input
+        placeholder="Cédula"
+        value={cedula}
+        onChange={(e) => setCedula(e.target.value)}
+      />
+      <input
+        type="password"
+        placeholder="Contraseña"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+      />
+      {error && <p style={{ color: "red" }}>{error}</p>}
+      <button type="submit">Ingresar</button>
+    </form>
+  )
+}
+
+
+
+
+
+
+
+
+FORMULARIO DE REGISTRO FEO, PERO FUNCIONAL - register form en components
+
+import { useState, useEffect } from "react";
+import API from "../services/api";
+import { useNavigate } from "react-router-dom"
+
+import {
+  Container,
+  TextField,
+  Button,
+  MenuItem,
+  Typography,
+  Grid
+} from "@mui/material";
+
+export default function RegisterForm(){
+
+const [nombre,setNombre] = useState("");
+const [cedula,setCedula] = useState("");
+const [correo,setCorreo] = useState("");
+
+const [departamentos,setDepartamentos] = useState([]);
+const [ciudades,setCiudades] = useState([]);
+const [sedes,setSedes] = useState([]);
+
+const [departamento,setDepartamento] = useState("");
+const [ciudad,setCiudad] = useState("");
+const [sede,setSede] = useState("");
+
+const [roles,setRoles] = useState([]); // Cargamos los roles desde el backend (PRESTAR ATENCIÓN)
+
+const navigate = useNavigate() // PRUEBA
+
+
+// const [roles,setRoles] = useState([
+// "ADMIN_LOCAL",
+// "GESTIONADOR",
+// "RADICADOR",
+// "ADMIN_GENERAL"
+// ]);
+
+const [rol,setRol] = useState("");
+
+useEffect(()=>{
+
+  // useEffect 1 → cargar departamentos
+
+  API.get("/sedes/departamentos")
+  .then(res=>{
+    setDepartamentos(res.data)
+  })
+
+},[])
+
+useEffect(()=>{
+
+  // useEffect 2 → verificar admin general
+
+  API.get("/usuarios/existe-admin-general")
+.then(res=>{
+
+  if(res.data.existe){
+
+  setRoles([
+  "ADMIN_LOCAL",
+  "GESTIONADOR",
+  "RADICADOR"
+  ])
+
+  }else{
+
+  setRoles([
+  "ADMIN_GENERAL",
+  "ADMIN_LOCAL",
+  "GESTIONADOR",
+  "RADICADOR"
+  ])
+
+  }
+
+})
+
+},[])
+
+useEffect(()=>{
+
+  // useEffect 3 → verificar admin local por sede
+
+  if(!sede) return
+
+  API.get(`/usuarios/admin-local/${sede}`)
+  .then(res=>{
+
+  if(res.data.existe){
+
+  setRoles(prevRoles =>
+  prevRoles.filter(r => r !== "ADMIN_LOCAL")
+  )
+
+  }
+
+  })
+
+},[sede])
+
+useEffect(()=>{
+
+  // useEffect 4 → limpiar sede si es admin general
+
+if(rol === "ADMIN_GENERAL"){
+
+setDepartamento("")
+setCiudad("")
+setSede("")
+
+}
+
+},[rol])
+
+const cargarCiudades = (dep)=>{
+
+setDepartamento(dep)
+
+API.get(`/sedes/ciudades/${dep}`)
+.then(res=>{
+  setCiudades(res.data)
+})
+
+}
+
+
+const cargarSedes = (city)=>{
+
+setCiudad(city)
+
+API.get(`/sedes/${city}`)
+.then(res=>{
+  setSedes(res.data)
+})
+
+}
+
+const handleSubmit = async(e)=>{
+
+e.preventDefault()
+
+// VALIDAR NOMBRE
+if(!/^[a-zA-Z\s]+$/.test(nombre)){
+  alert("El nombre solo debe contener letras")
+  return
+}
+
+// VALIDAR CÉDULA
+if(!/^[0-9]+$/.test(cedula)){
+  alert("La cédula solo debe contener números")
+  return
+}
+
+// VALIDAR EMAIL
+if(!/\S+@\S+\.\S+/.test(correo)){
+  alert("Correo electrónico inválido")
+  return
+}
+
+// VALIDAR SEDE
+if(rol !== "ADMIN_GENERAL" && !sede){
+  alert("Debe seleccionar una sede")
+  return
+}
+
+const data = {
+  nombre_completo:nombre,
+  cedula:cedula,
+  correo:correo,
+  rol:rol,
+  sede_id:rol === "ADMIN_GENERAL" ? null : sede
+}
+
+try{
+
+  const res = await API.post("/auth/register", data)
+  alert("Usuario creado. Contraseña temporal: " + res.data.password_temporal)
+  // Redirigir al login
+	navigate("/login")
+
+}catch(error){
+
+  if(error.response && error.response.data.detail){
+    alert(error.response.data.detail)
+  }else{
+    alert("Error inesperado del servidor")
+  }
+
+  // alert("Error al registrar usuario")
+}
+
+}
+
+return(
+
+<Container maxWidth="md">
+
+<Typography variant="h5" style={{marginTop:40}}>
+Registro de Usuario
+</Typography>
+
+<form onSubmit={handleSubmit}>
+
+<Grid container spacing={3}>
+
+<Grid size={{ xs: 12 }}>
+<TextField
+label="Nombre completo"
+fullWidth
+required
+onChange={(e)=>setNombre(e.target.value)}
+/>
+</Grid>
+
+<Grid size={{ xs: 12 }}>
+<TextField
+label="Cédula"
+fullWidth
+required
+onChange={(e)=>setCedula(e.target.value)}
+/>
+</Grid>
+
+<Grid size={{ xs: 12 }}>
+<TextField
+label="Correo electrónico"
+type="email"
+fullWidth
+required
+onChange={(e)=>setCorreo(e.target.value)}
+/>
+</Grid>
+
+{rol !== "ADMIN_GENERAL" && (
+<>
+{/* Departamento */}
+
+<Grid size={{ xs: 12, md: 4 }}>
+
+<TextField
+select
+label="Departamento"
+fullWidth
+required
+value={departamento}
+onChange={(e)=>cargarCiudades(e.target.value)}
+>
+
+{departamentos.map(dep=>(
+<MenuItem key={dep} value={dep}>{dep}</MenuItem>
+))}
+
+</TextField>
+
+</Grid>
+
+{/* Ciudad */}
+
+<Grid size={{ xs: 12, md: 4 }}>
+
+<TextField
+select
+label="Ciudad"
+fullWidth
+required
+value={ciudad}
+onChange={(e)=>cargarSedes(e.target.value)}
+>
+
+{ciudades.map(city=>(
+<MenuItem key={city} value={city}>{city}</MenuItem>
+))}
+
+</TextField>
+
+</Grid>
+
+{/* Sede */}
+
+<Grid size={{ xs: 12, md: 4 }}>
+
+<TextField
+select
+label="Sede"
+fullWidth
+required
+value={sede}
+onChange={(e)=>setSede(e.target.value)}
+>
+
+{sedes.map(s=>(
+<MenuItem key={s.id} value={s.id}>{s.nombre}</MenuItem>
+))}
+
+</TextField>
+
+</Grid>
+
+</>
+)}
+
+{/* ROL */}
+
+<Grid size={{ xs: 12 }}>
+
+<TextField
+select
+label="Rol"
+fullWidth
+required
+value={rol}
+onChange={(e)=>setRol(e.target.value)}
+>
+
+{roles.map(r=>(
+<MenuItem key={r} value={r}>{r}</MenuItem>
+))}
+
+</TextField>
+
+</Grid>
+
+
+<Grid size={{ xs: 12 }}>
+
+<Button
+type="submit"
+variant="contained"
+fullWidth
+>
+
+Registrarse
+
+</Button>
+
+</Grid>
+
+
+</Grid>
+
+</form>
+
+</Container>
+
+)
+
+}
+
+
