@@ -1,4 +1,5 @@
 from sqlalchemy import Column, Integer, String, Enum, ForeignKey, Boolean
+from sqlalchemy.orm import relationship
 from app.database import Base
 import enum
 
@@ -20,3 +21,9 @@ class Usuario(Base):
     sede_id = Column(Integer, ForeignKey("sedes.id"))
     password_hash = Column(String(255))
     debe_cambiar_password = Column(Boolean, default=True)  # 1 para True, 0 para False
+    area_id = Column(Integer, ForeignKey("areas.id"), nullable=True)
+    debe_seleccionar_area = Column(Boolean, default=True)
+    
+    # Relaciones
+    sede = relationship("Sede", foreign_keys=[sede_id])
+    area = relationship("Area", foreign_keys=[area_id])

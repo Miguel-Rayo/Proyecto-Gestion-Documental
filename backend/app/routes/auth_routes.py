@@ -41,7 +41,9 @@ def login(data: LoginSchema, db: Session = Depends(get_db)):
         "user_id": usuario.id,
         "nombre": usuario.nombre_completo,
         "rol": usuario.rol,
-        "debe_cambiar_password": usuario.debe_cambiar_password
+        "debe_cambiar_password": usuario.debe_cambiar_password,
+        "sede_id": usuario.sede_id,
+        "debe_seleccionar_area": usuario.debe_seleccionar_area
     }
 
 @router.post("/change-password")

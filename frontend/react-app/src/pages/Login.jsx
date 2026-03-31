@@ -29,9 +29,12 @@ export default function Login() {
       localStorage.setItem("user_id", res.data.user_id)
       localStorage.setItem("rol", res.data.rol)
       localStorage.setItem("nombre", res.data.nombre)
+      localStorage.setItem("sede_id", res.data.sede_id)
 
       if (res.data.debe_cambiar_password) {
         navigate("/change-password")
+      } else if (res.data.debe_seleccionar_area) {
+        navigate("/select-area")
       } else {
         navigate("/dashboard")
       }
@@ -154,6 +157,15 @@ export default function Login() {
               }
             </Button>
           </Box>
+
+          <Box sx={{ display: "flex", gap: 1, mt: 1 }}>
+              <Button fullWidth variant="text" onClick={() => navigate("/")}>
+                Home
+              </Button>
+              <Button fullWidth variant="text" onClick={() => navigate("/register")}>
+                Registrarse
+              </Button>
+            </Box>
 
         </CardContent>
       </Card>

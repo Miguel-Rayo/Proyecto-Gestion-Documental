@@ -358,6 +358,16 @@ export default function RegisterForm() {
                   }
                 </Button>
               </Grid>
+              <Grid size={{ xs: 12 }}>
+                <Box sx={{ display: "flex", gap: 1 }}>
+                  <Button fullWidth variant="text" onClick={() => navigate("/login")}>
+                    Iniciar Sesión
+                  </Button>
+                  <Button fullWidth variant="text" onClick={() => navigate("/")}>
+                    Home
+                  </Button>
+                </Box>
+              </Grid>
 
             </Grid>
           </Box>

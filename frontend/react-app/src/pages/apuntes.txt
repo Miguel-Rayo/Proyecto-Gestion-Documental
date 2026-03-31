@@ -1,4 +1,4 @@
-LOGIN en PAGES FEO PERO FUNCIONAL:
+LOGIN en PAGES FEO PERO FUNCIONAL V1. Por si acaso:
 
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
@@ -414,5 +414,3 @@ Registrarse
 )
 
 }
-
-
