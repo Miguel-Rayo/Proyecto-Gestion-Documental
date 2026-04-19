@@ -1,26 +1,8 @@
 from fastapi import Depends, HTTPException
 from app.dependencies.auth_dependency import get_current_user
 
-# def require_roles(*roles):
-
-#     def role_checker(user = Depends(get_current_user)):
-
-#         if user.rol not in roles:
-
-#             raise HTTPException(
-#                 status_code=403,
-#                 detail="No tienes permisos"
-#             )
-
-#         return user
-
-#     return role_checker
-
-
-
-
-def require_roles(*roles): # Mejora de Gemini
-    # Si por error pasas una lista [role1, role2], la aplanamos
+def require_roles(*roles): # Mejora de la función para aceptar múltiples roles
+    # Si por error pasamos una lista [role1, role2], la aplanamos
     if len(roles) == 1 and isinstance(roles[0], list):
         roles = roles[0]
         

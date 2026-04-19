@@ -184,29 +184,43 @@ def editar_sede(
     if data.departamento: sede.departamento = data.departamento
 
     if data.areas is not None:
-        # Verificar que no se desasigne un área con usuarios activos en esa sede
         asignaciones_actuales = db.query(SedeArea).filter(SedeArea.id_sede == sede_id).all()
+        
+        # Mapear área nombre → objeto SedeArea actual
+        mapa_actuales = {}
         for sa in asignaciones_actuales:
             area = db.query(Area).filter(Area.id == sa.id_area).first()
-            if area and area.nombre not in data.areas:
-                afectados = db.query(Usuario).filter(
-                    Usuario.sede_id == sede_id,
-                    Usuario.area_id == sa.id_area
-                ).count()
-                if afectados > 0:
-                    raise HTTPException(
-                        status_code=400,
-                        detail=f"No se puede desasignar '{area.nombre}': tiene {afectados} usuario(s) activo(s) en esta sede"
-                    )
+            if area:
+                mapa_actuales[area.nombre] = sa
 
-        db.query(SedeArea).filter(SedeArea.id_sede == sede_id).delete()
-        for nombre_area in data.areas:
-            area = db.query(Area).filter(Area.nombre == nombre_area).first()
+        nombres_actuales = set(mapa_actuales.keys())
+        nombres_nuevos = set(data.areas)
+
+        areas_a_quitar = nombres_actuales - nombres_nuevos  # las que se eliminaron
+        areas_a_agregar = nombres_nuevos - nombres_actuales  # las que se añadieron
+
+        # Validar solo las que se van a quitar
+        for nombre in areas_a_quitar:
+            sa = mapa_actuales[nombre]
+            afectados = db.query(Usuario).filter(
+                Usuario.sede_id == sede_id,
+                Usuario.area_id == sa.id_area
+            ).count()
+            if afectados > 0:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"No se puede desasignar '{nombre}': tiene {afectados} usuario(s) activo(s) en esta sede"
+                )
+            db.delete(sa)
+
+        # Agregar solo las nuevas
+        for nombre in areas_a_agregar:
+            area = db.query(Area).filter(Area.nombre == nombre).first()
             if area:
                 db.add(SedeArea(id_sede=sede_id, id_area=area.id))
 
     db.commit()
-    return {"mensaje": "Sede actualizada correctamente"}
+    return {"mensaje": "Sede actualizada correctamente"} 
 
 
 @router.delete("/sedes/{sede_id}")
