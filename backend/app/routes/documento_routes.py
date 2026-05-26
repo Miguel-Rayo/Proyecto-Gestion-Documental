@@ -1,8 +1,11 @@
 # Nuevo gemini
 
-from fastapi import APIRouter, Depends, UploadFile, File, Response, HTTPException
+from fastapi import APIRouter, Depends, Query, UploadFile, File, Response, HTTPException
+from fastapi.responses import StreamingResponse
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from typing import List
+from datetime import datetime
 import mimetypes
 
 from app.database import get_db
@@ -12,6 +15,7 @@ from app.dependencies.auth_dependency import get_current_user
 from app.dependencies.role_checker import require_roles # require_roles
 from app.models.documento_model import Documento
 from app.models.user_model import Usuario  # Necesario para filtrar por sede
+from app.utils.reportes_algoritmos import *
 
 router = APIRouter(prefix="/documentos", tags=["Documentos"])
 
@@ -131,3 +135,79 @@ def delete_file(
     """Elimina el archivo del sistema."""
     documento_service.eliminar_documento(db, doc_id, current_user.id)
     return {"message": "Documento eliminado correctamente"}
+
+
+@router.get("/exportar-csv")
+def exportar_documentos_csv(
+    fecha_inicio: datetime = Query(..., description="Formato: 2024-01-01T00:00:00"),
+    fecha_fin: datetime = Query(..., description="Formato: 2024-12-31T23:59:59"),
+    db: Session = Depends(get_db), 
+    current_user = Depends(get_current_user)
+):
+    roles_permitidos = ["ADMIN_GENERAL", "ADMIN_LOCAL", "RADICADOR"]    
+    if current_user.rol.upper() not in roles_permitidos:
+        raise HTTPException(
+            status_code=403, 
+            detail=f"El rol {current_user.rol} no tiene permisos para exportar csv."
+        )
+    # 1. Queryset filtrado por rango de fechas
+    documentos = db.query(Documento).filter(
+        Documento.fecha_ultima_gestion >= fecha_inicio,
+        Documento.fecha_ultima_gestion <= fecha_fin
+    ).all()
+
+    if not documentos:
+        return {"mensaje": "No se encontraron documentos en ese rango de fechas"}
+
+    # 2. Dividir la lista en dos mitades
+    mitad = len(documentos) // 2
+    primera_mitad = documentos[:mitad]
+    segunda_mitad = documentos[mitad:]
+
+    # 3. Aplicar recursividad simple a la primera mitad
+    filas_simple = construir_filas_simple(primera_mitad, 0, [])
+
+    # 4. Aplicar recursividad cruzada a la segunda mitad
+    filas_cruzada = procesar_documento(segunda_mitad, 0, [])
+
+    # 5. Unir ambos resultados
+    filas_totales = filas_simple + filas_cruzada
+
+    # 6. Generar y retornar el CSV
+    csv_file = generar_csv(filas_totales)
+
+    return StreamingResponse(
+        csv_file,
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=reporte_documentos.csv"}
+    )
+
+@router.get("/documentos-por-fecha")
+def obtener_documentos_por_fecha(
+    fecha: datetime = Query(..., description="Formato: 2024-01-01T00:00:00"),
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    roles_permitidos = ["ADMIN_GENERAL", "ADMIN_LOCAL", "RADICADOR"]    
+    if current_user.rol.upper() not in roles_permitidos:
+        raise HTTPException(
+            status_code=403, 
+            detail=f"El rol {current_user.rol} no tiene permisos para recurrir a este informe."
+        )
+        
+    documentos = db.query(Documento).filter(
+        func.date(Documento.fecha_ultima_gestion) == fecha.date()
+    ).all()
+
+    if not documentos:
+        return {"mensaje": "No se encontraron documentos para esa fecha"}
+
+    return [
+        {
+            "id": doc.id,
+            "fecha_ultima_gestion": doc.fecha_ultima_gestion,
+            "usuario_responsable": doc.usuario_responsable,
+            "estado": doc.estado
+        }
+        for doc in documentos
+    ]

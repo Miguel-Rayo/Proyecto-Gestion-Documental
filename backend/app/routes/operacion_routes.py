@@ -172,7 +172,7 @@ def finalizar_documento(datos: DocumentoFinalizar, current_user: Usuario = Depen
 # En app/routes/operacion_routes.py
 
 @router.get("/bandeja-entrada")
-def obtener_bandeja(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def obtener_bandeja(db: Session = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
     # Usamos .with_entities para seleccionar SOLO lo que necesitamos mostrar en la tabla
     # EXCLUIMOS la columna 'archivo'
     documentos = db.query(
@@ -199,7 +199,7 @@ def obtener_bandeja(db: Session = Depends(get_db), current_user: User = Depends(
 
 # Mi Gestión (Lo que ya acepté o finalicé)
 @router.get("/mi-gestion")
-def obtener_mi_gestion(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def obtener_mi_gestion(db: Session = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
     documentos = db.query(
         Documento.id,
         Documento.numero_radicado,
