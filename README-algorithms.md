@@ -110,6 +110,228 @@ Lo más cercano a una optimización son las consultas SQL con JOINs y filtros en
 - **Archivo:** [frontend/react-app/src/pages/ChangePassword.jsx](frontend/react-app/src/pages/ChangePassword.jsx) — Líneas 14–22
 - Reglas obligatorias: mínimo 8 caracteres, al menos una mayúscula, una minúscula, un dígito y un símbolo especial.
 
+# Algoritmos de Recursividad — Exportación CSV
+
+## Contexto
+
+En el módulo de exportación de documentos del sistema de gestión documental, se implementaron dos tipos de recursividad para procesar la lista de documentos filtrada por rango de fechas y construir las filas del archivo CSV resultante. La lista se divide en dos mitades: la primera es procesada con **recursividad simple** y la segunda con **recursividad indirecta (cruzada)**.
+
+---
+
+## 1. Recursividad Simple
+
+### Definición
+
+La recursividad simple ocurre cuando **una función se llama a sí misma directamente**, avanzando hacia un caso base que detiene las llamadas. Es la forma más directa y común de recursividad.
+
+### Flujo de ejecución
+
+```
+construir_filas_simple([doc0, doc1, doc2], index=0)
+  → agrega doc0
+  → construir_filas_simple([doc0, doc1, doc2], index=1)
+      → agrega doc1
+      → construir_filas_simple([doc0, doc1, doc2], index=2)
+          → agrega doc2
+          → construir_filas_simple([doc0, doc1, doc2], index=3)
+              → index >= len(documentos) ✓ CASO BASE → retorna resultado
+```
+
+### Código
+
+```python
+def construir_filas_simple(documentos: list, index: int = 0, resultado: list = None) -> list:
+    """
+    Recursividad simple: se llama a sí misma avanzando el índice
+    hasta procesar todos los documentos.
+    """
+    if resultado is None:
+        resultado = []
+
+    # Caso base: ya procesamos todos
+    if index >= len(documentos):
+        return resultado
+
+    doc = documentos[index]
+    resultado.append({
+        "id": doc.id,
+        "fecha_ultima_gestion": doc.fecha_ultima_gestion,
+        "usuario_responsable": doc.usuario_responsable,
+        "estado": doc.estado
+    })
+
+    # Llamada recursiva avanzando al siguiente
+    return construir_filas_simple(documentos, index + 1, resultado)
+```
+
+### Componentes clave
+
+| Componente | Descripción |
+|---|---|
+| **Caso base** | `index >= len(documentos)` — detiene la recursión cuando ya no hay más elementos |
+| **Caso recursivo** | `construir_filas_simple(documentos, index + 1, resultado)` — avanza al siguiente documento |
+| **Acumulador** | `resultado` — lista compartida que se va llenando en cada llamada |
+| **Profundidad** | `n` llamadas, donde `n` es el tamaño de la primera mitad de la lista |
+
+### Representación gráfica
+
+```
+Función A
+   │
+   ├─ ¿index >= len? → NO → agrega fila → llama A(index+1)
+   │                                              │
+   │                                    ¿index >= len? → NO → ...
+   │
+   └─ ¿index >= len? → SÍ → retorna resultado ✓
+```
+
+---
+
+## 2. Recursividad Indirecta (Cruzada)
+
+### Definición
+
+La recursividad indirecta ocurre cuando **dos o más funciones se llaman mutuamente** formando un ciclo. La función A llama a B, y B llama de vuelta a A, hasta que una de ellas alcanza el caso base. También se conoce como recursividad cruzada o mutua.
+
+### Flujo de ejecución
+
+```
+procesar_documento([doc0, doc1, doc2], index=0)   ← Función A
+  → index < len ✓ → delega a agregar_fila(index=0)
+
+    agregar_fila([doc0, doc1, doc2], index=0)      ← Función B
+      → agrega doc0
+      → llama procesar_documento(index=1)          ← de vuelta a A
+
+        procesar_documento([...], index=1)          ← Función A
+          → index < len ✓ → delega a agregar_fila(index=1)
+
+            agregar_fila([...], index=1)            ← Función B
+              → agrega doc1
+              → llama procesar_documento(index=2)
+
+                procesar_documento([...], index=2)
+                  → agrega doc2 → procesar_documento(index=3)
+
+                    procesar_documento([...], index=3)
+                      → index >= len ✓ CASO BASE → retorna resultado
+```
+
+### Código
+
+```python
+def procesar_documento(documentos: list, index: int, resultado: list) -> list:
+    """
+    Función A — verifica si hay más documentos y delega a agregar_fila.
+    """
+    # Caso base: no hay más documentos
+    if index >= len(documentos):
+        return resultado
+
+    # Llama a la Función B
+    return agregar_fila(documentos, index, resultado)
+
+
+def agregar_fila(documentos: list, index: int, resultado: list) -> list:
+    """
+    Función B — agrega la fila y vuelve a llamar a procesar_documento.
+    """
+    doc = documentos[index]
+    resultado.append({
+        "id": doc.id,
+        "fecha_ultima_gestion": doc.fecha_ultima_gestion,
+        "usuario_responsable": doc.usuario_responsable,
+        "estado": doc.estado
+    })
+
+    # Vuelve a llamar a la Función A
+    return procesar_documento(documentos, index + 1, resultado)
+```
+
+### Componentes clave
+
+| Componente | Descripción |
+|---|---|
+| **Caso base** | Solo en `procesar_documento`: `index >= len(documentos)` |
+| **Función A** | `procesar_documento` — actúa como **controlador**: verifica y delega |
+| **Función B** | `agregar_fila` — actúa como **ejecutor**: procesa y reenvía |
+| **Profundidad** | `2n` llamadas (A y B se alternan), donde `n` es el tamaño de la segunda mitad |
+
+### Representación gráfica
+
+```
+  Función A                    Función B
+(procesar_documento)         (agregar_fila)
+        │                          │
+        ├── ¿index >= len? ──SÍ──► retorna resultado ✓
+        │
+        └── NO ──────────────────► agrega fila
+                                   │
+                                   └──────────────────► llama A(index+1)
+                                                               │
+                                                        ¿index >= len? ...
+```
+
+---
+
+## 3. Comparación entre ambos algoritmos
+
+| Característica | Recursividad Simple | Recursividad Cruzada |
+|---|---|---|
+| **Número de funciones** | 1 | 2 |
+| **Patrón de llamadas** | A → A → A → ... | A → B → A → B → ... |
+| **Caso base** | En la misma función | Solo en la Función A |
+| **Llamadas totales** | n | 2n |
+| **Complejidad temporal** | O(n) | O(n) |
+| **Complejidad espacial** | O(n) en el call stack | O(n) en el call stack |
+| **Legibilidad** | Alta — todo en un lugar | Media — lógica distribuida |
+| **Uso natural** | Listas, contadores | Parsers, gramáticas, estados alternos |
+
+---
+
+## 4. Aplicación en el endpoint
+
+```python
+# Dividir la lista en dos mitades
+mitad = len(documentos) // 2
+primera_mitad = documentos[:mitad]   # → recursividad simple
+segunda_mitad = documentos[mitad:]   # → recursividad cruzada
+
+filas_simple  = construir_filas_simple(primera_mitad, 0, [])
+filas_cruzada = procesar_documento(segunda_mitad, 0, [])
+
+filas_totales = filas_simple + filas_cruzada
+```
+
+```
+documentos = [d1, d2, d3, d4, d5, d6]
+                  ↓                  ↓
+         [d1, d2, d3]       [d4, d5, d6]
+       Rec. Simple           Rec. Cruzada
+              ↓                    ↓
+         filas_simple        filas_cruzada
+                    ↓
+             CSV final (6 filas)
+```
+
+---
+
+## 5. Consideraciones importantes
+
+**Límite de recursión en Python**
+
+Python tiene un límite por defecto de **1000 llamadas recursivas** en el call stack. Para volúmenes grandes de documentos se recomienda verificar o aumentar este límite:
+
+```python
+import sys
+sys.setrecursionlimit(5000)  # ajustar según el volumen esperado
+```
+
+**¿Cuándo usar cada una?**
+
+La recursividad simple es suficiente para recorrer listas planas. La recursividad cruzada tiene más sentido en problemas donde dos estados o roles se alternan naturalmente, como parsers de lenguajes, validación de pares (apertura/cierre de paréntesis), o máquinas de estados con dos fases. En este proyecto se usa con fines académicos para demostrar ambos conceptos.
+
+
 ---
 
 ## Resumen General
@@ -122,7 +344,7 @@ Lo más cercano a una optimización son las consultas SQL con JOINs y filtros en
 | Algoritmos Voraces (Greedy) | **SÍ** | `operacion_routes.py`, `user_routes.py` |
 | Programación Lineal / Dinámica | **NO** | — |
 | Cifrado y Seguridad de Contraseñas | **SÍ** | `security.py`, `jwt_handler.py`, `auth_routes.py` |
-
+| Recursiviad | **Sí** | `reportes_algoritmos.py` |  
 
 El proyecto usa una arquitectura Cliente-Servidor desacoplada (REST API + SPA):
 
