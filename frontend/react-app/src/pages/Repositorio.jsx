@@ -17,14 +17,13 @@ import {
 } from '@mui/icons-material';
 import api from '../services/api';
 import { useNavigate } from "react-router-dom";
-import { FileDownloadRounded } from '@mui/icons-material';
 
 const ESTADO_COLORS = {
-  ACTIVO:    { bg: "#e8f5e9", color: "#2e7d32" },
-  PENDIENTE: { bg: "#fff3e0", color: "#e65100" },
-  ARCHIVADO: { bg: "#f3e5f5", color: "#6a1b9a" },
-  ELIMINADO: { bg: "#ffebee", color: "#c62828" },
-}
+  RADICADO:   { bg: "#e3f2fd", color: "#1565c0" },
+  TRASLADADO: { bg: "#fff3e0", color: "#e65100" },
+  ACEPTADO:   { bg: "#e8f5e9", color: "#2e7d32" },
+  FINALIZADO: { bg: "#f3e5f5", color: "#6a1b9a" },
+};
 
 const Repositorio = () => {
   const navigate = useNavigate();
@@ -47,46 +46,6 @@ const Repositorio = () => {
       setError("Error al cargar los documentos");
     } finally {
       setLoading(false);
-    }
-  };
-
-  // Reemplaza solo la sección entre el error Alert y el Paper de la tabla,
-// y agrega el estado/función necesarios arriba del return.
-
-  const [fechaInicio, setFechaInicio] = useState('');
-  const [fechaFin, setFechaFin]       = useState('');
-  const [loadingCsv, setLoadingCsv]   = useState(false);
-
-  // 2. Agrega esta función junto a las otras funciones:
-  const handleExportarCsv = async () => {
-    if (!fechaInicio || !fechaFin) {
-      alert("Por favor ingresa ambas fechas");
-      return;
-    }
-    setLoadingCsv(true);
-    try {
-      const response = await api.get('/documentos/exportar-csv', {
-        params: {
-          fecha_inicio: `${fechaInicio}T00:00:00`,
-          fecha_fin:    `${fechaFin}T23:59:59`,
-        },
-        responseType: 'blob', // <-- importante para archivos
-      });
-
-      // Crear URL temporal y disparar descarga automática
-      const url      = window.URL.createObjectURL(new Blob([response.data]));
-      const link     = document.createElement('a');
-      link.href      = url;
-      link.setAttribute('download', `reporte_documentos_${fechaInicio}_${fechaFin}.csv`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
-    } catch (err) {
-      alert(err.response?.data?.detail || "Error al exportar el reporte");
-      console.log(err)
-    } finally {
-      setLoadingCsv(false);
     }
   };
 
@@ -117,7 +76,7 @@ const Repositorio = () => {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm("¿Estás seguro de eliminar este documento permanentemente?")) {
+    if (window.confirm("Estas seguro de eliminar este documento permanentemente?")) {
       try {
         await api.delete(`/documentos/${id}`);
         fetchDocumentos();
@@ -191,96 +150,6 @@ const Repositorio = () => {
       {error && (
         <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>{error}</Alert>
       )}
-
-
-      {/* ── Tarjeta Exportar CSV ── */}
-      <Paper sx={{
-        borderRadius: 3,
-        overflow: "hidden",
-        boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
-        mb: 2,
-      }}>
-        <Box sx={{ height: 4, background: "linear-gradient(90deg, #1b5e20, #2e7d32, #43a047)" }} />
-        <Box sx={{
-          display: "flex",
-          alignItems: "center",
-          gap: 2,
-          px: 3,
-          py: 1.8,
-          flexWrap: "wrap",
-        }}>
-          {/* Ícono + Título */}
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mr: 1 }}>
-            <Box sx={{
-              width: 36, height: 36, borderRadius: 2,
-              background: "linear-gradient(135deg, #1b5e20, #43a047)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              flexShrink: 0,
-            }}>
-              <FileDownloadRounded sx={{ color: "white", fontSize: 19 }} />
-            </Box>
-            <Box>
-              <Typography fontSize={13} fontWeight={700} color="#1b5e20" lineHeight={1.2}>
-                Exportar Reporte CSV
-              </Typography>
-              <Typography fontSize={11} color="text.secondary">
-                Selecciona un rango de fechas
-              </Typography>
-            </Box>
-          </Box>
-
-          <Divider orientation="vertical" flexItem sx={{ mx: 1, display: { xs: "none", sm: "block" } }} />
-
-          {/* Inputs de fecha */}
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flexWrap: "wrap", flex: 1 }}>
-            <TextField
-              label="Fecha inicio"
-              type="date"
-              size="small"
-              value={fechaInicio}
-              onChange={(e) => setFechaInicio(e.target.value)}
-              InputLabelProps={{ shrink: true }}
-              sx={{ minWidth: 160 }}
-            />
-            <Typography fontSize={13} color="text.secondary" sx={{ display: { xs: "none", sm: "block" } }}>
-              —
-            </Typography>
-            <TextField
-              label="Fecha fin"
-              type="date"
-              size="small"
-              value={fechaFin}
-              onChange={(e) => setFechaFin(e.target.value)}
-              InputLabelProps={{ shrink: true }}
-              sx={{ minWidth: 160 }}
-            />
-          </Box>
-
-          {/* Botón */}
-          <Button
-            onClick={handleExportarCsv}
-            disabled={loadingCsv || !fechaInicio || !fechaFin}
-            variant="contained"
-            startIcon={loadingCsv
-              ? <CircularProgress size={15} sx={{ color: "white" }} />
-              : <FileDownloadRounded />
-            }
-            sx={{
-              background: "linear-gradient(135deg, #1b5e20, #2e7d32)",
-              borderRadius: 2,
-              fontWeight: 700,
-              fontSize: 13,
-              px: 2.5,
-              whiteSpace: "nowrap",
-              "&:hover": { background: "linear-gradient(135deg, #2e7d32, #388e3c)" },
-              "&.Mui-disabled": { background: "#e0e0e0" },
-            }}
-          >
-            {loadingCsv ? "Generando..." : "Descargar CSV"}
-          </Button>
-        </Box>
-      </Paper>
-
 
       {/* Table */}
       <Paper sx={{ borderRadius: 3, overflow: "hidden", boxShadow: "0 8px 32px rgba(0,0,0,0.15)" }}>
@@ -392,7 +261,7 @@ const Repositorio = () => {
         )}
       </Paper>
 
-      {/* ── Modal: Radicar documento ── */}
+      {/* Modal: Radicar documento */}
       <Dialog
         open={openUpload}
         onClose={() => setOpenUpload(false)}
@@ -469,7 +338,7 @@ const Repositorio = () => {
         </DialogActions>
       </Dialog>
 
-      {/* ── Modal: Renombrar ── */}
+      {/* Modal: Renombrar */}
       <Dialog
         open={openRename}
         onClose={() => setOpenRename(false)}

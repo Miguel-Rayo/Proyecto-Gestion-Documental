@@ -35,6 +35,7 @@ import {
   AccessTimeRounded,
   InsertDriveFileRounded,
   PersonOutlineRounded,
+  AssessmentRounded,
 } from "@mui/icons-material"
 import API from "../services/api"
 
@@ -79,6 +80,13 @@ const MODULE_CONFIG = {
     label: "Mi Gestión",
     description: "Tu espacio de trabajo personal",
     gradient: "linear-gradient(135deg, #1565c0 0%, #1a237e 100%)",
+    roles: ["ADMIN_GENERAL", "ADMIN_LOCAL", "GESTIONADOR"],
+  },
+  "/reportes": {
+    icon: <AssessmentRounded sx={{ fontSize: 32 }} />,
+    label: "Reportes",
+    description: "Generar reportes de documentos",
+    gradient: "linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%)",
     roles: ["ADMIN_GENERAL", "ADMIN_LOCAL", "GESTIONADOR"],
   },
 }
