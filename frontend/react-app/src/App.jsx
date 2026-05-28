@@ -11,6 +11,7 @@ import GestionSedes from "./pages/admin/GestionSedes"
 
 import ProtectedRoute from "./components/ProtectedRoute"
 import Repositorio from "./pages/Repositorio"
+import Reportes from "./pages/Reportes"
 
 import BandejaEntrada from "./pages/BandejaEntrada"
 import MiGestion from "./pages/MiGestion"
@@ -77,7 +78,21 @@ return (
    <Repositorio/>
   </ProtectedRoute>
  }
-/> 
+/>
+
+<Route
+ path="/reportes"
+ element={
+  <ProtectedRoute>
+   <Reportes/>
+  </ProtectedRoute>
+ }
+/>
+
+<Route
+  path="/operacion"
+  element={<ProtectedRoute><Operacion /></ProtectedRoute>}
+/>
 
 
 <Route 

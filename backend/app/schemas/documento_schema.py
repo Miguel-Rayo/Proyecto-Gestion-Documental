@@ -44,3 +44,24 @@ class DestinatarioOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class ResponsablePreviewSchema(BaseModel):
+    id: int
+    cedula: str
+    nombre: str
+    rol: str
+    sede: str
+
+
+class DocumentoPreviewSchema(BaseModel):
+    numero_radicado: str
+    nombre_documento: str
+    fecha_ultima_gestion: Optional[datetime]
+    estado: str
+    responsable: ResponsablePreviewSchema
+
+
+class ReportePreviewResponse(BaseModel):
+    total: int
+    documentos: list[DocumentoPreviewSchema]
